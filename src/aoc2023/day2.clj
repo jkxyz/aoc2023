@@ -13,7 +13,7 @@
    :green 13
    :blue 14})
 
-(def parser
+(def game-parser
   (instaparse/parser
    "<Game> = <'Game '> Number <': '> ( (Set <'; '>)+ Set | Set )
     Set = ( (CubeCount <', '>)+ CubeCount | CubeCount )
@@ -22,14 +22,14 @@
     Number = #'\\d+'
     "))
 
-(def transformers
+(def game-parser-transformers
   {:CubeCount vector
    :Set vector
    :Color keyword
    :Number #(Long/parseUnsignedLong %)})
 
-(defn parse-line [s]
-  (instaparse/transform transformers (parser s)))
+(defn parse-game [s]
+  (instaparse/transform game-parser-transformers (game-parser s)))
 
 (defn cube-count-possible? [cube-count]
   (let [[n color] cube-count]
@@ -43,13 +43,32 @@
     (every? set-possible? sets)))
 
 (def possible-game-ids-xform
-  (comp (map parse-line)
+  (comp (map parse-game)
         (filter game-possible?)
         (map first)))
 
-(defn answer [input]
+(defn answer1 [input]
   (transduce possible-game-ids-xform + 0 (string/split-lines input)))
 
 (comment
-  (answer test-input)
-  (answer input))
+  (answer1 test-input)
+  (answer1 input))
+
+(defn set-cube-counts [set]
+  (into {} (map (juxt second first)) set))
+
+(defn game-max-cube-counts [game]
+  (let [[_ & sets] game]
+    (apply merge-with max (map set-cube-counts sets))))
+
+(def game-powers-xform
+  (comp (map parse-game)
+        (map game-max-cube-counts)
+        (map #(apply * (vals %)))))
+
+(defn answer2 [input]
+  (transduce game-powers-xform + 0 (string/split-lines input)))
+
+(comment
+  (answer2 test-input)
+  (answer2 input))

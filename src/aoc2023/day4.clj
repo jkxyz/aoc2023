@@ -11,13 +11,14 @@
 
 (def card-parser
   (instaparse/parser
-   "<Card> = <'Card'> <' '+> Number <':'> Numbers <' | '> Numbers
+   "Card = <'Card'> <' '+> Number <':'> Numbers <' | '> Numbers
     Numbers = (<' '*> Number <' '*>)+
     Number = #'\\d+'
     "))
 
 (def card-parser-transformers
-  {:Numbers vector
+  {:Card (fn [n winning played] [(dec n) winning played])
+   :Numbers vector
    :Number #(Long/parseUnsignedLong %)})
 
 (defn parse-line [s]
@@ -39,3 +40,17 @@
 (comment
   (answer1 test-input)
   (answer1 input))
+
+(defn answer2 [input]
+  (let [original-cards (into [] (comp (map parse-line) (map (fn [card] [card (count (winning-numbers card))]))) (string/split-lines input))]
+    (loop [[[[idx] won-count] & cards] (into [] (filter #(not (zero? (second %)))) original-cards)
+           processed-cards original-cards]
+      (if idx
+        (let [following-cards (subvec original-cards (inc idx) (min (+ (inc idx) won-count) (dec (count original-cards))))]
+          (recur (into cards (filter #(not (zero? (second %)))) following-cards)
+                 (into processed-cards following-cards)))
+        (count processed-cards)))))
+
+(comment
+  (answer2 test-input)
+  (answer2 input))
